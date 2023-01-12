@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Matthew T. Panhans" />
+
+<meta name="date" content="2023-01-11" />
+
+<title>Semiparametric Estimation with Hospital Discharge Data</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Semiparametric Estimation with Hospital
+Discharge Data</h1>
+<h4 class="author">Matthew T. Panhans</h4>
+<h4 class="date">2023-01-11</h4>
+
+
+
+<p>This vignette shows how to use healthcare.antitrust to implement the
+semiparametric demand estimation technique developed in Raval,
+Rosenbaum, and Tenn (2017) “A Semiparametric Discrete Choice Model: An
+Application to Hospital Mergers” <a href="https://doi.org/10.1111/ecin.12454" class="uri">https://doi.org/10.1111/ecin.12454</a>. This model is useful
+to estimate “diversion ratios” which are used to assess substitutability
+between merging parties’ products in antitrust analysis.</p>
+<p>The method is illustrated using a simulated dataset of hospital
+discharges that is included with the healthcare.antitrust package. This
+simulated dataset mimics the basic structure of real hospital discharge
+data, with each observation including a hospital identifier and patient
+characteristics (DRG diagnosis code, patient age, and patient zip code
+of residence). The data includes 1,200 discharges from eight
+hospitals.</p>
+<p>Suppose that the analyst is interested in estimating diversion ratios
+between hospitals in System 1, which includes Hospitals 1 and 2, and
+Hospital 5, which is an independent hospital. This vignette will show
+how to implement each step to arrive at the estimate.</p>
+<div id="cell-definitions" class="section level1">
+<h1>Cell definitions</h1>
+<p>The first step is to assign observations to ‘cells,’ within which the
+substitution proportional to share will be assumed to hold. This
+assignment of observations can be done with the <code>cell_defn</code>
+function. Begin by loading the example simulation dataset of hospital
+discharges:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(healthcare.antitrust)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(discharge_data, <span class="at">package =</span> <span class="st">&quot;healthcare.antitrust&quot;</span>)</span></code></pre></div>
+<p>The observations will be grouped into cells based on variables in the
+dataset. Let’s define cells based on three variables: the DRG diagnosis
+code, the patient age, and the patient zip code of residence. We do this
+by specifying the variables and then saving them in a list variable
+called <code>layers</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>list1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;drg&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;zip5&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>layers <span class="ot">&lt;-</span> <span class="fu">list</span>(list1)</span></code></pre></div>
+<p>A minimum cell size threshold also needs to be set. Observations will
+be assigned to a cell only if that cell includes at least the minimum
+threshold number of observations. Let’s set the minimum size to 15:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>th <span class="ot">&lt;-</span> <span class="dv">15</span></span></code></pre></div>
+<p>Then use <code>cell_defn</code> to allocate observations to cells,
+based on the variables in the layer. The one variable that needs to be
+included in the dataframe is a variable specifying the number of
+admissions represented by each observation. By default, this variable
+name is <code>count</code>, and if present the function
+<code>cell_defn</code> will use it as the admission count.
+Alternatively, another variable can be indicated as the count variable.
+If no variable is specified as the count and <code>count</code> is not
+present in the dataframe, <code>cell_defn</code> will assume each
+observation represents one admission and create a variable
+<code>count</code> always equal to one. We will go ahead and create the
+variable in our dataframe, and then run <code>cell_defn</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>discharge_data<span class="sc">$</span>count <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>outList <span class="ot">&lt;-</span> <span class="fu">cell_defn</span>(discharge_data,th,layers)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Layer 1: 1116 obs allocated</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Number of Excluded Obs: 84</span></span></code></pre></div>
+<p>The <code>cell_defn</code> function prints a message indicating the
+number of observations assigned to cells, and also returns a list. The
+first item in the return list is a new dataset that contains the
+observations that have been allocated to a cell, as well as their
+assignment.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>D0 <span class="ot">&lt;-</span> outList<span class="sc">$</span>assigned</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">nrow</span>(D0))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1116</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">nrow</span>(discharge_data))</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1200</span></span></code></pre></div>
+<p>The new dataset has <code>nrow(D0)</code> observations.
+<code>cell_defn</code> stated that it excluded some observations, those
+that were not allocated to a cell that met the minimum size threshold.
+The number of unassigned observations added to the number of assigned
+observations in the new dataset equals the number of observations in the
+original dataset. A data frame of unassigned observations is the second
+item in the return list and can be accessed with
+<code>outList$unassigned</code>.</p>
+<p>Because some observations may not be assigned to a cell, it is useful
+to specify several “layers” of variables in order to assign observations
+to cells. Using a more coarse set of variables will assign more
+observations, since the cells will be larger and more likely to exceed
+the minimum size threshold. But finer layers allow one to better account
+for heterogeneity in preferences across different types of people. That
+is why <code>cell_defn</code> allows for input of many layers, and they
+should be ordered by increasing coarseness. This will assign
+observations by more granular categories at first, and then for
+remaining unassigned individuals, they will be assigned into more coarse
+groupings.</p>
+<p>Instead of using only one layer, we can modify our example to instead
+use three layers to define cells. Adding more coarse layers will allow
+more observations to be allocated to cells that meet the minimum size
+threshold. Let’s add layers that use three digit zip codes instead of
+the five digit zip code.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>discharge_data<span class="sc">$</span>zip3 <span class="ot">&lt;-</span> <span class="fu">floor</span>(discharge_data<span class="sc">$</span>zip5<span class="sc">/</span><span class="dv">100</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>list1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;drg&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;zip5&quot;</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>list2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;drg&quot;</span>,<span class="st">&quot;age&quot;</span>,<span class="st">&quot;zip3&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>list3 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;zip3&quot;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>layers <span class="ot">&lt;-</span> <span class="fu">list</span>(list1, list2, list3)</span></code></pre></div>
+<p>With this new definition of layers, we can allocate observations like
+before:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>outList <span class="ot">&lt;-</span> <span class="fu">cell_defn</span>(discharge_data,th,layers)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Layer 1: 1116 obs allocated</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Layer 2: 0 obs allocated</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Layer 3: 84 obs allocated</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Number of Excluded Obs: 0</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>D0 <span class="ot">&lt;-</span> outList<span class="sc">$</span>assigned</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">nrow</span>(D0))</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1200</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">nrow</span>(discharge_data))</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1200</span></span></code></pre></div>
+<p>The observations are first allocated to cells as before, and the
+remaining observations are allocated to a cell based on three digit zip
+code only. With these definitions, every observation is allocated to a
+cell that meets the minimum size threshold that was set.</p>
+<p>Note that in each layer, <code>cell_defn</code> only assigns
+observations that have not been assigned in previous layers. That is,
+the function assigns observations without replacement. An alternative
+method can be used, in which assignment at each layer is done by
+sampling with replacement from all observation that meet the cell
+criteria, even if they have been previously assigned in a finer layer.
+This option of assigning with replacement is currently not
+implemented.</p>
+<p>We are now able to calculate diversion ratios based on the cell
+definitions.</p>
+</div>
+<div id="diversion-ratio-calculation" class="section level1">
+<h1>Diversion ratio calculation</h1>
+<p>Once observations have been assigned to cells, we can now calculate
+diversion ratios with the function <code>div_calc</code>. Within each
+cell <span class="math inline">\(c\)</span>, the diversion from a
+hospital <span class="math inline">\(k\)</span> to hospital <span class="math inline">\(h\)</span> is given by <span class="math inline">\(d^c_{k,h} = \frac{s^c_h}{1 - s^c_{m(k)}}\)</span>
+where <span class="math inline">\(s^c_h\)</span> is the share of cell
+<span class="math inline">\(c\)</span> admissions to hospital <span class="math inline">\(h\)</span>, and <span class="math inline">\(s^c_{m(k)}\)</span> is the share of cell <span class="math inline">\(c\)</span> admissions at hospital <span class="math inline">\(k\)</span> or any other hospital in the same
+system as <span class="math inline">\(k\)</span>. The overall diversions
+are then calculated by aggregating over cells (See Raval, Rosenbaum, and
+Tenn (2017) for details.)</p>
+<p>The required variables in the input dataframe are <code>cell</code>,
+which has been defined by the <code>cell_defn</code> function, as well
+as hospital and system identifiers: <code>hosp_id</code>,
+<code>Hospital</code>, <code>sys_id</code>, and <code>System</code>. The
+function also requires <code>count</code>, which is created by
+<code>cell_defn</code> if it does not exist.</p>
+<p>Finally, we need to specify an indicator for the set of hospitals we
+are interested in diversions among, for example the hospitals that are
+parties in a proposed merger. The variable to indicate such hospitals is
+<code>party_ind</code>, and these are the hospitals for which diversion
+ratios will be calculated. We are interested in studying a proposed
+merger including hospitals 1, 2, and 5, and so we assign them the party
+indicator variable.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>D0<span class="sc">$</span>party_ind <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>D0<span class="sc">$</span>party_ind[D0<span class="sc">$</span>hosp_id<span class="sc">==</span><span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>D0<span class="sc">$</span>party_ind[D0<span class="sc">$</span>hosp_id<span class="sc">==</span><span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>D0<span class="sc">$</span>party_ind[D0<span class="sc">$</span>hosp_id<span class="sc">==</span><span class="dv">5</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span></code></pre></div>
+<p>Now we can calculate diversions using the <code>div_calc</code>
+function.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">div_calc</span>(D0)</span></code></pre></div>
+<!-- The function prints the `hosp_id` of each hospital for which diversion is calculated. -->
+<p>The function <code>div_calc</code> returns a list with two
+components, the first is a matrix of hospital-level diversions and the
+second is a matrix aggregated to system-level diversions. The
+hospital-level matrix gives diversions from each of the merging
+hospitals to all other hospitals. The diversions should sum to 1. We can
+verify that our diversions sum to one for Hospital 1:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>divratio_hosp <span class="ot">&lt;-</span> out<span class="sc">$</span>hosp_level</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(divratio_hosp<span class="sc">$</span>div_from_1, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+<p>We can also print the hospital-level and system-level diversions.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(out<span class="sc">$</span>hosp_level)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   hosp_id   hospital party_sys_id sys_id N_h  div_from_1 div_from_2  div_from_5</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1       1 Hospital 1            1      1 126          NA         NA 0.020029200</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2       2 Hospital 2            1      1  62          NA         NA 0.108043702</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5       5 Hospital 5            5      5 281 0.030760752 0.21885190          NA</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3       3 Hospital 3           NA      3  68 0.011270687 0.06452584 0.405450090</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4       4 Hospital 4           NA      3  67 0.350897381 0.05426687 0.003693519</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6       6 Hospital 6           NA      6 198 0.049305381 0.17531098 0.167909726</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7       7 Hospital 7           NA      7 107 0.008281941 0.17351964 0.034753384</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8       8 Hospital 8           NA      8 291 0.549483858 0.31352477 0.260120379</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(out<span class="sc">$</span>sys_level)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   hosp_id   hospital party_sys_id sys_id N_h div_from_sys_1 div_from_sys_5</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1       1 Hospital 1            1      1 126             NA    0.020029200</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2       2 Hospital 2            1      1  62             NA    0.108043702</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5       5 Hospital 5            5      5 281     0.09279081             NA</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3       3 Hospital 3           NA      3  68     0.02883356    0.405450090</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4       4 Hospital 4           NA      3  67     0.25307242    0.003693519</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6       6 Hospital 6           NA      6 198     0.09086042    0.167909726</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7       7 Hospital 7           NA      7 107     0.06277523    0.034753384</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8       8 Hospital 8           NA      8 291     0.47166756    0.260120379</span></span></code></pre></div>
+<div id="some-notes" class="section level2">
+<h2>Some notes</h2>
+<p>If the total diversion for a given hospital does not sum to 1, that
+means that at least one degenerate cell exists, meaning that there
+exists a cell where every individual assigned to that cell visits the
+same hospital. Such cells cause problems for the method used here, which
+predicts diversions for individuals in a cell based on the shares within
+that cell. If the share is 100% in a cell, the model cannot make any
+prediction about to where those individuals would substitute.</p>
+<p>By default, <code>div_calc</code> will drop any degenerate cells so
+that diversions will still sum to 1. If a degenerate cell exists and the
+<code>dropDegenerateCell</code> option is set to <code>FALSE</code>, the
+diversion for a hospital may sum to less than one because degenerate
+cells will not be dropped. A notification flag will be printed whenever
+a degenerate cell exists for a given hospital.</p>
+</div>
+</div>
+<div id="willingness-to-pay-calculation" class="section level1">
+<h1>Willingness-to-pay calculation</h1>
+<p>Once observations have been assigned to cells, one can also use the
+function <code>wtp_calc</code> to calculate the willingness-to-pay (WTP)
+of a hospital system (see Capps, Dranove, and Satterthwaite (2003)
+“Competition and Market Power in Option Demand Markets” <a href="https://www.jstor.org/stable/1593786" class="uri">https://www.jstor.org/stable/1593786</a>). This can be used
+to estimate the change in WTP that would occur after a merger, using the
+discharge data as we have been using.</p>
+<p>Within this semiparametric estimation method, the formulas for WTP
+are as follows. For individuals in a given cell <span class="math inline">\(c\)</span>, the choice probabiities for a given
+hospital <span class="math inline">\(j\)</span> are estimated by <span class="math inline">\(s_j^c = \frac{N^c_j}{N^c}\)</span>, where <span class="math inline">\(N^c\)</span> is the number of admissions belonging
+to cell <span class="math inline">\(c\)</span>, and <span class="math inline">\(N^c_j\)</span> is the number of admissions from
+cell <span class="math inline">\(c\)</span> that visit hospital <span class="math inline">\(j\)</span>. The WTP for the cell is then given by
+<span class="math inline">\(WTP_c(j) = \ln \frac{1}{1-s_j^c}\)</span>.
+The population WTP for hospital <span class="math inline">\(j\)</span>
+is then simply the weighted sum across cells:</p>
+<p><span class="math inline">\(WTP(j) = \sum_c N^c \times
+WTP_c(j)\)</span></p>
+<p>To calculate the change in WTP resulting from a merger, first note
+the general formula for calcuating WTP for a system <span class="math inline">\(M\)</span> is:</p>
+<p><span class="math inline">\(WTP_c(M) = \ln \frac{1}{1- \sum_{j \in M}
+s_j^c}\)</span></p>
+<p>Aggregating across cells gives the population WTP. The changing in
+WTP from a merger can then be given as the WTP of the post-merger system
+minus the WTP of the sum of the systems pre-merger. If we denote by
+<span class="math inline">\(M\)</span> the hypothetical post-merger
+system and <span class="math inline">\(M_1\)</span> and <span class="math inline">\(M_2\)</span> the systems before they merge, then
+as a percentage increase the change in willingness-to-pay is given by
+<span class="math inline">\(\Delta WTP = \frac{WTP(M) - (WTP(M_1) +
+WTP(M_2)) }{WTP(M_1) + WTP(M_2)}\)</span></p>
+<p>To implement this calculation using the <code>wtp_calc</code>
+function, we calculate the WTP for both systems pre-merger as well as
+for a hypothetical combined system.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">wtp_calc</span>(D0)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>y_pre <span class="ot">&lt;-</span> <span class="fu">subset</span>(out, party <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>D0_post <span class="ot">&lt;-</span> D0</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>D0_post<span class="sc">$</span>sys_id[D0_post<span class="sc">$</span>party_ind <span class="sc">==</span> <span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">wtp_calc</span>(D0_post)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>y_post <span class="ot">&lt;-</span> <span class="fu">subset</span>(out, party <span class="sc">==</span> <span class="dv">1</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>y_pre <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(<span class="fu">list</span>(<span class="at">WTP_s =</span> y_pre<span class="sc">$</span>WTP_s, <span class="at">WTP_s_wt =</span> y_pre<span class="sc">$</span>WTP_s_wt, <span class="at">N_s=</span>y_pre<span class="sc">$</span>N_s),<span class="at">by=</span><span class="fu">list</span>(<span class="at">y_party=</span>y_pre<span class="sc">$</span>party),sum)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">&quot;% Change in WTP&quot;</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;% Change in WTP&quot;</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>((y_post<span class="sc">$</span>WTP_s<span class="sc">-</span>y_pre<span class="sc">$</span>WTP_s)<span class="sc">/</span>(y_pre<span class="sc">$</span>WTP_s)<span class="sc">*</span><span class="dv">100</span>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 6.504824</span></span></code></pre></div>
+<p>This standard approach makes the assumption that WTP per dollar is
+constant across diagnoses. One alternative approach is to weight each
+admission by the diagnoses code (such as DRG) for each admission. This
+can be done with <code>wtp_calc</code> by providing a variable
+<code>weight</code>. For example, it is sometimes desirable to weight
+the WTP calculation by DRG weights. If weight is provided,
+<code>wtp_calc</code> will provide both a weighted an unweighted
+calculation for WTP. Otherwise, <code>wtp_calc</code> will assume a
+weight of 1 and both the unweighted and weighted WTP estimates will be
+equivalent.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
